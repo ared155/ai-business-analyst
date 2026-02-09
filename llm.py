@@ -1,8 +1,5 @@
 import os
-from dotenv import load_dotenv
 from google import genai
-
-load_dotenv()
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 
@@ -66,5 +63,6 @@ Keep it short and professional.
         model="gemini-2.5-flash",
         contents=prompt,
     )
+
 
     return response.text.strip()
