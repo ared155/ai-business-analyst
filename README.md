@@ -53,7 +53,7 @@ User Question
 
 ---
 
-## 📸 Example Queries
+## Example Queries
 
 - Show total sales amount by product  
 - Which region generated the highest revenue?  
@@ -62,7 +62,7 @@ User Question
 
 ---
 
-## ⚙️ Setup Locally
+## Setup Locally
 
 ```bash
 pip install -r requirements.txt
