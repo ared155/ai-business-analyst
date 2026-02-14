@@ -1,6 +1,6 @@
 # AI Business Analyst (RAG-Powered SQL Agent)
 
-Live Demo 👉 [Hugging Face Space]((https://huggingface.co/spaces/Ared155/ai-business-analyst))
+Live Demo 👉 [Hugging Face Space](https://huggingface.co/spaces/Ared155/ai-business-analyst)
 
 ---
 
