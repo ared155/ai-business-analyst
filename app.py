@@ -1,45 +1,75 @@
-import streamlit as st
-import requests
+import gradio as gr
 import pandas as pd
 
-st.set_page_config(page_title="AI Business Analyst", layout="wide")
+from schema_loader import load_schema_documents
+from rag import SchemaRAG
+from llm import generate_sql, generate_insight
+from db import execute_query
+from sql_guard import is_safe
 
-st.title("📊 AI Business Analyst")
-st.markdown("Ask questions about your business database using natural language.")
 
-question = st.text_input("Enter your question")
+# -------------------------
+# Load RAG once
+# -------------------------
 
-if st.button("Analyze"):
+documents = load_schema_documents()
+rag = SchemaRAG(documents)
 
-    if question.strip() == "":
-        st.warning("Please enter a question.")
-    else:
-        with st.spinner("Analyzing..."):
 
-            response = requests.get(
-                "http://127.0.0.1:8000/ask",
-                params={"question": question}
-            )
+# -------------------------
+# Main Logic
+# -------------------------
 
-            data = response.json()
+def analyze(question):
 
-            if "error" in data:
-                st.error(data["error"])
-            else:
-                st.subheader("🧠 Generated SQL")
-                st.code(data["generated_sql"], language="sql")
+    if not question.strip():
+        return "Please enter a question.", "", ""
 
-                st.subheader("📈 Query Result")
+    try:
+        # Retrieve relevant schema
+        relevant_schema = rag.retrieve(question)
+        schema_text = "\n".join(relevant_schema)
 
-                df = pd.DataFrame(data["result"])
-                st.dataframe(df, use_container_width=True)
+        # Generate SQL
+        sql = generate_sql(question, schema_text)
 
-                # Auto simple chart if numeric column exists
-                numeric_cols = df.select_dtypes(include="number").columns
+        if not is_safe(sql):
+            return "Unsafe query generated.", "", ""
 
-                if len(numeric_cols) > 0:
-                    st.subheader("📊 Visualization")
-                    st.bar_chart(df.set_index(df.columns[0]))
+        # Execute
+        result = execute_query(sql)
+        insight = generate_insight(question, result)
 
-                st.subheader("💡 Business Insight")
-                st.success(data["insight"])
+        df = pd.DataFrame(result)
+
+        return sql, df, insight
+
+    except Exception as e:
+        return f"Error: {str(e)}", "", ""
+
+
+# -------------------------
+# Gradio UI
+# -------------------------
+
+with gr.Blocks() as demo:
+
+    gr.Markdown("# 📊 AI Business Analyst (RAG Version)")
+    gr.Markdown("Ask business questions in natural language.")
+
+    question_input = gr.Textbox(label="Enter your question")
+
+    analyze_btn = gr.Button("Analyze")
+
+    sql_output = gr.Code(label="Generated SQL", language="sql")
+    result_output = gr.Dataframe(label="Query Result")
+    insight_output = gr.Textbox(label="Business Insight")
+
+    analyze_btn.click(
+        analyze,
+        inputs=question_input,
+        outputs=[sql_output, result_output, insight_output]
+    )
+
+
+demo.launch()
